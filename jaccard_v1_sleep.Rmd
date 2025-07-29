@@ -1,0 +1,229 @@
+---
+title: "Sleep Item Content Overlap Jaccard"
+output: html_notebook
+---
+---
+title: "Jaccard Index"
+output: html_notebook
+---
+
+
+
+```{r}
+
+# Load necessary libraries
+library(openxlsx)
+library(apaTables)
+
+```
+
+```{r}
+
+# Read the data from the Excel file
+data <- read.xlsx("FINAL Sleep Content Coding (1).xlsx", sheet = 3)
+
+# List of variables to calculate Jaccard index
+variables <- c("SSR", "SDSC", "CSHQ", "CRSP", "PSQ", "PSQI", "CBCL", "BASC-3-PR", "PGBI", "CASI")
+j_index <- c("SSR", "SDSC", "CSHQ", "CRSP", "PSQ", "PSQI", "CBCL", "BASC-3-PR", "PGBI", "CASI")
+
+```
+
+
+use the following results to update these two paragraphs and the tables: 
+
+"We estimated overlap among rating scales via the Jaccard Index. The mean overlap among all 9 scales was ___, which indicated a __ similarity of the scales (Evans, 1996). Specific overlap among all individual scales and the mean overlap of each scale with all other 8 scales, can be found in Table 3. 
+
+Jaccard Indexes for specific overlap among all individual scales ranged from ___ to ___. __ coefficients implied __ similarity ... The highest overlap among individual scales was between the __ and __ (.__; __ similarity). The __ and __ had the lowest overlap (.__; __ similarity). Jaccard Indexes for the mean overlap of each scale with all other 8 scales range from __ to __. Coefficient for _ with other scales implied _ similarity, and the 8 others can be considered _. In addition, ... had the largest mean overlap with other rating scales. "
+
+Be sure to check the criteria: Jaccard Index power: very weak 0.00–0.19, weak 0.20–0.39, moderate 0.40–0.59, strong 0.60–0.79, and very strong 0.80–1.0 (Evans, 1996; Fried, 2017). 
+
+
+
+```{r}
+
+# Function to calculate Jaccard index
+jaccard_index <- function(x, y) {
+  intersection <- sum(x & y)
+  union <- sum(x | y)
+  return(intersection / union)
+}
+
+# Initialize a matrix to store the Jaccard indices
+jaccard_matrix <- matrix(NA, nrow = length(j_index), ncol = length(j_index))
+rownames(jaccard_matrix) <- j_index
+colnames(jaccard_matrix) <- j_index
+
+# Calculate the Jaccard index for each pair of variables
+for (i in 1:length(j_index)) {
+  for (j in i:length(j_index)) {
+    jaccard_matrix[i, j] <- jaccard_index(data[[j_index[i]]], data[[j_index[j]]])
+    jaccard_matrix[j, i] <- jaccard_matrix[i, j] # Matrix is symmetric
+  }
+}
+
+# Print the Jaccard index matrix
+print(jaccard_matrix)
+write.csv(jaccard_matrix, file = "jaccard_matrix.csv", row.names = TRUE)
+write.xlsx(jaccard_matrix, file = "table2jaccard.xlsx")
+```
+
+
+
+```{r}
+
+# Calculate the mean Jaccard similarity for data
+mean_jaccard_similarity <- apply(jaccard_matrix, 1, function(x) (sum(x) - 1) / (length(x) - 1))
+
+# Print the mean Jaccard similarity
+print(mean_jaccard_similarity)
+
+# Adjust the mean_all calculation
+mean_all <- sum(mean_jaccard_similarity) / length(mean_jaccard_similarity)
+print(mean_all)
+
+```
+
+```{r}
+vars_two <- c("SSR", "SDSC", "CSHQ", "CRSP", "PSQ", "PSQI")
+j_index_two <- vars_two
+```
+
+```{r}
+# Function to calculate Jaccard index
+jaccard_index_two <- function(x, y) {
+  intersection <- sum(x & y)
+  union <- sum(x | y)
+  return(intersection / union)
+}
+
+# Initialize a matrix to store the Jaccard indices
+jaccard_matrix_two <- matrix(NA, nrow = length(j_index_two), ncol = length(j_index_two))
+rownames(jaccard_matrix_two) <- j_index_two
+colnames(jaccard_matrix_two) <- j_index_two
+
+# Calculate the Jaccard index for each pair of variables
+for (i in 1:length(j_index_two)) {
+  for (j in i:length(j_index_two)) {
+    jaccard_matrix_two[i, j] <- jaccard_index(data[[j_index_two[i]]], data[[j_index_two[j]]])
+    jaccard_matrix_two[j, i] <- jaccard_matrix[i, j] # Matrix is symmetric
+  }
+}
+
+# Print the Jaccard index matrix
+print(jaccard_matrix_two)
+```
+
+```{r}
+
+# Calculate the mean Jaccard similarity for data
+mean_jaccard_similarity_two <- apply(jaccard_matrix_two, 1, function(x) (sum(x) - 1) / (length(x) - 1))
+
+# Print the mean Jaccard similarity
+print(mean_jaccard_similarity_two)
+
+# Adjust the mean_all calculation
+mean_all_two <- sum(mean_jaccard_similarity_two) / length(mean_jaccard_similarity_two)
+print(mean_all_two)
+
+```
+Use the following results to revise this paragraph: "Jaccard Indexes for the overlap of each scale ranged from ... to ... Coefficient for ... implied ... similarity (...)
+
+```{r}
+library(ggplot2)
+library(reshape2)
+library(GGally)
+```
+
+```{R}
+jaccard_matrix[upper.tri(jaccard_matrix, diag = TRUE)] <- NA
+melted_cor_matrix <- melt(jaccard_matrix, na.rm = TRUE)
+
+jaccard_matrix_two[upper.tri(jaccard_matrix_two, diag = TRUE)] <- NA
+melted_cor_matrix_two <- melt(jaccard_matrix_two, na.rm = TRUE)
+```
+
+
+```{R}
+library(ggplot2)
+library(reshape2)
+
+plot <- ggplot(data = melted_cor_matrix, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(
+    low = "white", 
+    high = "red", 
+    limits = c(0.01, 0.6), # Tightened range based on your observed data
+    name = "Correlation\n(Jaccard Index)"
+  ) +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 4) +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                   size = 12, hjust = 1)) +
+  coord_fixed() +
+  theme(panel.background = element_rect(fill = "transparent", color = NA)) +
+  theme(plot.background = element_rect(fill = "transparent", color = NA)) + 
+  
+  labs(x="Assessment", y="Assessment")
+
+plot
+
+# Save the plot as a PNG file
+ggsave(
+  filename = "correlation_plot.png",  # File name
+  plot = plot,                        # The plot object to save
+  width = 8, height = 6, dpi = 300,   # Dimensions and resolution
+  bg = "white"                        # Set background to white
+)
+
+```
+
+```{r}
+library(ggplot2)
+library(reshape2)
+library(GGally)
+```
+
+```{R}
+jaccard_matrix[upper.tri(jaccard_matrix, diag = TRUE)] <- NA
+melted_cor_matrix <- melt(jaccard_matrix, na.rm = TRUE)
+
+jaccard_matrix_two[upper.tri(jaccard_matrix_two, diag = TRUE)] <- NA
+melted_cor_matrix_two <- melt(jaccard_matrix_two, na.rm = TRUE)
+```
+
+
+```{R}
+library(ggplot2)
+library(reshape2)
+
+plot <- ggplot(data = melted_cor_matrix_two, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(
+    low = "white", 
+    high = "red", 
+    limits = c(0.01, 0.6), # Tightened range based on your observed data
+    name = "Correlation\n(Jaccard Index)"
+  ) +
+  geom_text(aes(label = round(value, 2)), color = "black", size = 4) +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                   size = 12, hjust = 1)) +
+  coord_fixed() +
+  theme(panel.background = element_rect(fill = "transparent", color = NA)) +
+  theme(plot.background = element_rect(fill = "transparent", color = NA)) + 
+  
+  labs(x="Assessment", y="Assessment")
+
+plot
+
+# Save the plot as a PNG file
+ggsave(
+  filename = "correlation_plot_two.png",  # File name
+  plot = plot,                        # The plot object to save
+  width = 8, height = 6, dpi = 300,   # Dimensions and resolution
+  bg = "white"                        # Set background to white
+)
+
+```
+
+
